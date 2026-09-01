@@ -1,5 +1,5 @@
 # ===================================
-# Logger for the Cave Level Alert addon
+# Logger for the Town Cleanup addon
 # ===================================
 
 
@@ -7,7 +7,7 @@ import os
 import threading
 
 
-class CaveLevelAlertLogger:
+class TownCleanupLogger:
     
     def __init__(self):
         self.init()
@@ -45,5 +45,6 @@ class CaveLevelAlertLogger:
         except Exception:
             pass
         return os.path.join(path,self._log_file)
+    
 
     

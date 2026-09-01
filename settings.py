@@ -16,6 +16,8 @@ DEFAULT_SETTINGS = {
     "redwood_box": True,
     "spriggull_cleanup": True,
     "lag_items_cleanup": True,
+    "custom_cleanup": False,
+    "custom_cleanup_items": [],
 }
 
 
@@ -158,6 +160,8 @@ class TownCleanupSettingsWindow:
         self.redwood_var = tk.BooleanVar(value=bool(self.settings.get("redwood_box", DEFAULT_SETTINGS["redwood_box"])))
         self.spriggull_var = tk.BooleanVar(value=bool(self.settings.get("spriggull_cleanup", DEFAULT_SETTINGS["spriggull_cleanup"])))
         self.lag_items_var = tk.BooleanVar(value=bool(self.settings.get("lag_items_cleanup", DEFAULT_SETTINGS["lag_items_cleanup"])))
+        self.custom_var = tk.BooleanVar(value=bool(self.settings.get("custom_cleanup", DEFAULT_SETTINGS["custom_cleanup"])))
+        self.custom_items_var = tk.StringVar(value=",".join(self.settings.get("custom_cleanup_items", DEFAULT_SETTINGS["custom_cleanup_items"])))
 
         checks = [
             ("Tree Cleanup", self.tree_var),
@@ -165,7 +169,14 @@ class TownCleanupSettingsWindow:
             ("Redwood Box", self.redwood_var),
             ("Spriggull Cleanup", self.spriggull_var),
             ("Lag Items (rusty tools, arrows, bones, etc.)", self.lag_items_var),
+            ("Custom Cleanup", self.custom_var),
         ]
+         ## Add a text entry for custom cleanup items
+        custom_items_frame = ttk.Frame(toggles_frame, style="Tav.Card.TFrame")
+        custom_items_frame.pack(fill="x", pady=(6, 0))
+
+        tk.Label(custom_items_frame, text="Custom Items (comma-separated item names) (e.g., item1, item2, item3):", bg=SURF, fg=PARCH).pack(anchor="w", pady=(0, 2))
+        tk.Entry(custom_items_frame, textvariable=self.custom_items_var).pack(fill="x", pady=(0, 2))
 
         for label, variable in checks:
             tk.Checkbutton(
@@ -207,6 +218,8 @@ class TownCleanupSettingsWindow:
             "redwood_box": bool(self.redwood_var.get()),
             "spriggull_cleanup": bool(self.spriggull_var.get()),
             "lag_items_cleanup": bool(self.lag_items_var.get()),
+            "custom_cleanup": bool(self.custom_var.get()),
+            "custom_cleanup_items": [item.strip() for item in self.custom_items_var.get().split(",") if item.strip()],
         }
         self.settings = new_settings
         ok = save_settings(new_settings)
@@ -228,7 +241,8 @@ class TownCleanupSettingsWindow:
         self.redwood_var.set(DEFAULT_SETTINGS["redwood_box"])
         self.spriggull_var.set(DEFAULT_SETTINGS["spriggull_cleanup"])
         self.lag_items_var.set(DEFAULT_SETTINGS["lag_items_cleanup"])
-
+        self.custom_var.set(DEFAULT_SETTINGS["custom_cleanup"])
+        self.custom_items_var.set(",".join(DEFAULT_SETTINGS["custom_cleanup_items"]))
         self._save_settings()
 
 

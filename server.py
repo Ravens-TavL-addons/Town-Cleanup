@@ -14,7 +14,7 @@ spriggullCleanup = ['spriggulldrumstickbone', 'spriggullfeatherred', 'spriggullf
 items = ["arrow", "woodcutwedge", "KaKarimataArrow", "SmallBoneSpike", "RustyAxe", "RustyChisel", "RustyGreataxe", "RustyGreatsword", "RustyHammer", "RustyPickaxe", "RustyPitchfork", "RustyShield", "RustyShortsword", "RustySpade", "stick", "stone", "flint", "spriggulldrumstickbone", "SpriggullDrumstickFullRipe", "SpriggullDrumstickHalfRipe", "spriggullfeatherred", "spriggullfeatherblue", "spriggullfletchingred", "spriggullfletchingblue", "AppleCoreRipe", "AppleCoreUnripe", "ArrowShaftWooden", "TurabadaArm", "HebiosHandleKunai", "Kunai", "Salt", "SandstoneStone"]
 
 
-from .logger import CaveLevelAlertLogger
+from .logger import TownCleanupLogger
 import os
 import threading
 import time
@@ -40,7 +40,7 @@ AVAILABLE settings:
 
 
 
-logger = CaveLevelAlertLogger()
+logger = TownCleanupLogger()
 _stop_event = threading.Event()
 
 global _ws_client
@@ -58,7 +58,7 @@ def on_shutdown():
     if _ws_client is not None:
         _ws_client.disconnect()
         _ws_client = None
-    logger._log("town_cleanup Logger shutting down.")
+    logger._log("[Town Cleanup] Logger shutting down.")
 
 
 def on_line(line):
@@ -68,21 +68,22 @@ def on_line(line):
 def on_disc(reason=""):
     global _ws_client
     if reason:
-        logger._log(f"[town_cleanup] disconnected from console: {reason}")
+        logger._log(f"[Town Cleanup] disconnected from console: {reason}")
        
        
         if _ws_client is not None: #ignore 
             _ws_client.disconnect() #ignore
             _ws_client = None
+            logger._log("[Town Cleanup] websocket client disconnected, attempting to reconnect...")
             threading.Thread(target=startup, daemon=True).start()   
     else:
-        logger._log("[town_cleanup] disconnected from console.")
+        logger._log("[Town Cleanup] disconnected from console.")
         _stop_event.clear()
         
         if _ws_client is not None:
             _ws_client.disconnect()
             _ws_client = None
-
+            logger._log("[Town Cleanup] websocket client disconnected, attempting to reconnect...")
             threading.Thread(target=startup, daemon=True).start()
 
 
@@ -102,12 +103,12 @@ def startup():
 
     token = _wait_for_token()
     if not token:
-        logger._log("[town_cleanup] startup canceled before token became available.")
+        logger._log("[Town Cleanup] startup canceled before token became available.")
         return
 
     logger._log(f"Console token: {token}")
     logger._new_line()
-    logger._log("[town_cleanup] attempting to subscribe to PlayerJoined and PlayerLeft events.")
+    logger._log("[Town Cleanup] attempting to subscribe to PlayerJoined and PlayerLeft events.")
 
     if _ws_client is None:
         _ws_client = WsConsoleClient()
@@ -115,55 +116,60 @@ def startup():
     while not _stop_event.is_set():
         client = _ws_client
         if client is None:
-            logger._log("[town_cleanup] websocket client unavailable; stopping startup loop.")
+            logger._log("[Town Cleanup] websocket client unavailable; stopping startup loop.")
             return
-        logger._log("[town_cleanup] attempting to connect to console...")
+        logger._log("[Town Cleanup] attempting to connect to console...")
         try:
             success, msg = client.connect("127.0.0.1", token,on_line=on_line, on_disc=on_disc)
         except Exception as e:
-            logger._log(f"[town_cleanup] connect RAISED: {type(e).__name__}: {e}")
+            logger._log(f"[Town Cleanup] connect RAISED: {type(e).__name__}: {e}")
             time.sleep(2.0)
             continue
-        logger._log(f"[town_cleanup] connect attempt result: {success}, message: {msg}")
+        logger._log(f"[Town Cleanup] connect attempt result: {success}, message: {msg}")
         if not success:
-            logger._log(f"[town_cleanup] console not ready yet ({msg}); retrying in 2s...")
+            logger._log(f"[Town Cleanup] console not ready yet ({msg}); retrying in 2s...")
             time.sleep(2.0)
             continue
         if success:
-            logger._log(f"[town_cleanup] connected to console: {msg}")
+            logger._log(f"[Town Cleanup] connected to console: {msg}")
 
             logger._new_line()
             settings = load_settings()
             delay = settings.get("cleanup_delay", 300)
-            logger._log(f"[town_cleanup] cleanup delay: {delay} seconds")
+            logger._log(f"[Town Cleanup] cleanup delay: {delay} seconds")
             items_to_cleanup = []
             if settings.get("tree_cleanup", True):
                 items_to_cleanup.extend(TreeLag)
-                logger._log(f"[town_cleanup] tree cleanup enabled; items: {TreeLag}")
+                logger._log(f"[Town Cleanup] tree cleanup enabled; items: {TreeLag}")
             if settings.get("cave_cleanup", True):
                 items_to_cleanup.extend(CaveCleanup)
                 items_to_cleanup.extend(BoulderCleanup)
                 items_to_cleanup.extend(turabadaCleanup)
-                logger._log(f"[town_cleanup] cave cleanup enabled; items: {CaveCleanup}")
+                logger._log(f"[Town Cleanup] cave cleanup enabled; items: {CaveCleanup}")
             if settings.get("redwood_box", True):
                 items_to_cleanup.extend(RedwoodBox)
-                logger._log(f"[town_cleanup] redwood box cleanup enabled; items: {RedwoodBox}")
+                logger._log(f"[Town Cleanup] redwood box cleanup enabled; items: {RedwoodBox}")
             if settings.get("spriggull_cleanup", True):
                 items_to_cleanup.extend(spriggullCleanup)
-                logger._log(f"[town_cleanup] spriggull cleanup enabled; items: {spriggullCleanup}")
+                logger._log(f"[Town Cleanup] spriggull cleanup enabled; items: {spriggullCleanup}")
 
             if settings.get("lag_items_cleanup", True):
                 items_to_cleanup.extend(items)
-                logger._log(f"[town_cleanup] lag items cleanup enabled; items: {items}")
+                logger._log(f"[Town Cleanup] lag items cleanup enabled; items: {items}")
+
+            if settings.get("custom_cleanup", False):
+                custom_items = settings.get("custom_cleanup_items", [])
+                items_to_cleanup.extend(custom_items)
+                logger._log(f"[Town Cleanup] custom cleanup enabled; items: {custom_items}")
             while not _stop_event.is_set():
 
                 time.sleep(delay)
                 for item in items_to_cleanup:
                     client.send(f"wacky destroy-free {item}")
-                    logger._log(f"[town_cleanup] removed item: {item}")
+                    ##logger._log(f"[Town Cleanup] removed item: {item}") ## debug logging uncomment this line to log every item removed, but it will generate a lot of log entries
 
 
-        logger._log(f"[town_cleanup] console not ready yet ({msg}); retrying in 2s...")
+        logger._log(f"[Town Cleanup] console not ready yet ({msg}); retrying in 2s...")
         time.sleep(2.0)
 
 

@@ -43,21 +43,14 @@ AVAILABLE settings:
 logger = TownCleanupLogger()
 _stop_event = threading.Event()
 
-
+global _ws_client
+_ws_client = None
     
-
 
 register_town_cleanup_settings_window()
 
 
-def on_shutdown():
-    global _ws_client
-    _stop_event.set()
-    
-    if _ws_client is not None:
-        _ws_client.disconnect()
-        _ws_client = None
-    logger._log("[Town Cleanup] Logger shutting down.")
+
 
 
 def on_line(line):
@@ -65,11 +58,12 @@ def on_line(line):
         
 
 def on_disc(reason=""):
-    global _ws_client
+    
     if reason:
         logger._log(f"[Town Cleanup] disconnected from console: {reason}")
        
        
+        global _ws_client
         if _ws_client is not None: #ignore 
             _ws_client.disconnect() #ignore
             _ws_client = None
@@ -135,6 +129,7 @@ def startup():
     logger._log("[Town Cleanup] attempting to subscribe to PlayerJoined and PlayerLeft events.")
 
     if _ws_client is None:
+        logger._log("[Town Cleanup] websocket client unavailable; stopping startup loop.")
         _ws_client = WsConsoleClient()
     
     while not _stop_event.is_set():

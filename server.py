@@ -43,8 +43,7 @@ AVAILABLE settings:
 logger = TownCleanupLogger()
 _stop_event = threading.Event()
 
-global _ws_client
-_ws_client = WsConsoleClient()
+
     
 
 
@@ -122,6 +121,7 @@ def setupitems_to_cleanup():
         if isinstance(custom_items, str):
             custom_items = [item.strip() for item in custom_items.split(",") if item.strip()]
         items_to_cleanup.extend(custom_items)
+    return items_to_cleanup
 def startup():
     global _ws_client
 
@@ -162,11 +162,11 @@ def startup():
             while not _stop_event.is_set():
 
                 time.sleep(delay)
-                setupitems_to_cleanup()
-                for item in items_to_cleanup:
+                items = setupitems_to_cleanup()
+                for item in items:
 
                     client.send(f"wacky destroy-free {item}")
-                    ##logger._log(f"[Town Cleanup] removed item: {item}") ## debug logging uncomment this line to log every item removed, but it will generate a lot of log entries
+                    logger._log(f"[Town Cleanup] removed item: {item}") ## debug logging uncomment this line to log every item removed, but it will generate a lot of log entries
 
 
         logger._log(f"[Town Cleanup] console not ready yet ({msg}); retrying in 2s...")

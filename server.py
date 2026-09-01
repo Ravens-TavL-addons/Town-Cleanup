@@ -98,6 +98,30 @@ def _wait_for_token(check_every=1.0):
             pass
         time.sleep(check_every)
     return ""
+
+
+def setupitems_to_cleanup():
+    settings = load_settings()
+    global items_to_cleanup
+    global delay
+    delay = settings.get("cleanup_delay", DEFAULT_SETTINGS["cleanup_delay"])
+    items_to_cleanup = []
+    if settings.get("tree_cleanup", DEFAULT_SETTINGS["tree_cleanup"]):
+        items_to_cleanup.extend(TreeLag)
+    if settings.get("cave_cleanup", DEFAULT_SETTINGS["cave_cleanup"]):
+        items_to_cleanup.extend(CaveCleanup)
+    if settings.get("redwood_box", DEFAULT_SETTINGS["redwood_box"]):
+        items_to_cleanup.extend(RedwoodBox)
+    if settings.get("spriggull_cleanup", DEFAULT_SETTINGS["spriggull_cleanup"]):
+        items_to_cleanup.extend(spriggullCleanup)
+    if settings.get("lag_items_cleanup", DEFAULT_SETTINGS["lag_items_cleanup"]):
+        items_to_cleanup.extend(BoulderCleanup)
+        items_to_cleanup.extend(turabadaCleanup)
+    if settings.get("custom_cleanup", DEFAULT_SETTINGS["custom_cleanup"]):
+        custom_items = settings.get("custom_cleanup_items", DEFAULT_SETTINGS["custom_cleanup_items"])
+        if isinstance(custom_items, str):
+            custom_items = [item.strip() for item in custom_items.split(",") if item.strip()]
+        items_to_cleanup.extend(custom_items)
 def startup():
     global _ws_client
 
@@ -134,37 +158,13 @@ def startup():
             logger._log(f"[Town Cleanup] connected to console: {msg}")
 
             logger._new_line()
-            settings = load_settings()
-            delay = settings.get("cleanup_delay", 300)
-            logger._log(f"[Town Cleanup] cleanup delay: {delay} seconds")
-            items_to_cleanup = []
-            if settings.get("tree_cleanup", True):
-                items_to_cleanup.extend(TreeLag)
-                logger._log(f"[Town Cleanup] tree cleanup enabled; items: {TreeLag}")
-            if settings.get("cave_cleanup", True):
-                items_to_cleanup.extend(CaveCleanup)
-                items_to_cleanup.extend(BoulderCleanup)
-                items_to_cleanup.extend(turabadaCleanup)
-                logger._log(f"[Town Cleanup] cave cleanup enabled; items: {CaveCleanup}")
-            if settings.get("redwood_box", True):
-                items_to_cleanup.extend(RedwoodBox)
-                logger._log(f"[Town Cleanup] redwood box cleanup enabled; items: {RedwoodBox}")
-            if settings.get("spriggull_cleanup", True):
-                items_to_cleanup.extend(spriggullCleanup)
-                logger._log(f"[Town Cleanup] spriggull cleanup enabled; items: {spriggullCleanup}")
-
-            if settings.get("lag_items_cleanup", True):
-                items_to_cleanup.extend(items)
-                logger._log(f"[Town Cleanup] lag items cleanup enabled; items: {items}")
-
-            if settings.get("custom_cleanup", False):
-                custom_items = settings.get("custom_cleanup_items", [])
-                items_to_cleanup.extend(custom_items)
-                logger._log(f"[Town Cleanup] custom cleanup enabled; items: {custom_items}")
+            
             while not _stop_event.is_set():
 
                 time.sleep(delay)
+                setupitems_to_cleanup()
                 for item in items_to_cleanup:
+
                     client.send(f"wacky destroy-free {item}")
                     ##logger._log(f"[Town Cleanup] removed item: {item}") ## debug logging uncomment this line to log every item removed, but it will generate a lot of log entries
 
